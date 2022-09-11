@@ -1,0 +1,23 @@
+---
+title: "APIs and web scraping with R"
+author: "Andrew Heiss"
+date: "September 12, 2022"
+---
+
+## Materials
+
+All the materials we'll use today are in this RStudio project. You can open this project in your browser without needing to install or download anything on your computer. Open this RStudio.cloud project (you'll need to create a free account really quick):
+
+<p class="text-center"><a class="btn btn-info btn-lg" target="_blank" href="https://rstudio.cloud/content/4486735">{{< fa brands r-project >}} &ensp;RStudio.cloud project</a></p>
+
+Alternatively, you can download all the files to your computer. It is a `.zip` file, so make sure you extract/unzip it after downloading it (especially if [you're using Windows!](https://evalf22.classes.andrewheiss.com/resource/unzipping.html))
+
+<p class="text-center"><a class="btn btn-info btn-lg" target="_blank" href="project.zip">{{< fa file-zipper >}} &ensp;RStudio project</a></p>
+
+## Slides
+
+<p class="text-center"><a class="btn btn-success btn-lg" target="_blank" href="presentation/">{{< fa arrow-up-right-from-square >}} &ensp;View all slides in new window</a> <a class="btn btn-success btn-lg" target="_blank" href="presentation/slides.pdf" role="button">{{< fa file-pdf >}} &ensp;Download PDF of all slides</a></p>
+
+<div class="ratio ratio-16x9">
+<iframe class="slide-deck" src="presentation/"></iframe>
+</div>

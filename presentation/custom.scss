@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/*-- scss:defaults --*/
+
+$font-family-sans-serif: 'Poppins', sans-serif;
+$font-family-monospace: 'Roboto Mono', monospace;
+
+$presentation-title-slide-text-align: left;
+
+$presentation-h1-font-size: 2.4em;
+$presentation-h2-font-size: 2em;
+
+
+/*-- scss:rules --*/
+
+.white h1 {
+  color: #ffffff !important;
+}
+
+.middle h2 {
+  text-align: center !important;
+}

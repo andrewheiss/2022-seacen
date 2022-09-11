@@ -1,0 +1,1111 @@
+---
+title: "APIs and web scraping"
+subtitle: "Extracting online content with R"
+author: "Andrew Heiss"
+date: "September 12, 2022"
+format:
+  revealjs: 
+    slide-number: true
+    # chalkboard: 
+    #   buttons: false
+    preview-links: auto
+    theme: [simple, custom.scss]
+    title-slide-attributes:
+      data-background-color: "#cf3a36"
+resources:
+  - slides.pdf
+---
+
+```{r include=FALSE}
+library(tidyverse)
+library(httr)
+
+clrs <- MetBrewer::met.brewer(name = "Java")
+clrs_lt <- colorspace::lighten(clrs, 0.9)
+
+knitr::opts_chunk$set(fig.retina = 3, collapse = TRUE)
+options(digits = 3, width = 75)
+```
+
+# Plan for today {background-color="`r clrs[4]`" .white}
+
+## {background-color="`r clrs_lt[4]`"}
+
+::: {.incremental style="font-size: 1.8em;"}
+- **Working with raw data**
+- **Pre-built API packages**
+- **Accessing APIs yourself**
+- **Scraping websites**
+:::
+
+# Working with raw data {background-color="`r clrs[1]`"}
+
+## Finding data online {background-color="`r clrs_lt[1]`"}
+
+::: {.incremental}
+- Data is everywhere online!
+- Often provided as CSV or Excel files
+- Read the file into R and do stuff with it
+:::
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/world-bank-plain.png){fig-align="center" width="100%"}
+
+::: footer
+[World Bank GDP (constant 2015 US$)](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/world-bank-csv.png){fig-align="center" width="100%"}
+
+::: footer
+[World Bank GDP (constant 2015 US$)](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/wdi-csv.png){fig-align="center" width="100%"}
+
+## {background-color="`r clrs_lt[1]`"}
+
+```{r include=FALSE}
+wdi_raw <- read_csv(here::here("R/API_NY.GDP.MKTP.KD_DS2_en_csv_v2_4487681.csv"),
+                    skip = 3)
+```
+
+```{r eval=FALSE, echo=TRUE}
+library(tidyverse)
+
+wdi_raw <- read_csv("API_NY.GDP.MKTP.KD_DS2_en_csv_v2_4487681.csv",
+                    skip = 3)
+wdi_raw
+```
+
+```{r}
+head(wdi_raw)
+```
+
+## {background-color="`r clrs_lt[1]`"}
+
+```{r echo=TRUE, collapse=FALSE}
+wdi_clean <- wdi_raw %>% 
+  select(-`Indicator Name`, -`Indicator Code`) %>% 
+  pivot_longer(-c(`Country Name`, `Country Code`)) %>% 
+  mutate(year = as.numeric(name)) %>% 
+  filter(year >= 2010, `Country Code` %in% c("MYS", "IDN", "SGP"))
+
+head(wdi_clean)
+```
+
+## {background-color="`r clrs_lt[1]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+
+ggplot(wdi_clean, aes(x = year, y = value, color = `Country Name`)) +
+  geom_line() +
+  scale_x_continuous(breaks = 2010:2020) +
+  labs(x = NULL, y = "GDP", color = NULL)
+```
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/fred-plain.png){fig-align="center" width="100%"}
+
+::: footer
+[FRED CPILFESL](https://fred.stlouisfed.org/series/CPILFESL){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/fred-csv.png){fig-align="center" width="100%"}
+
+::: footer
+[FRED CPILFESL](https://fred.stlouisfed.org/series/CPILFESL){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[1]`"}
+
+![](images/fred-csv-file.png){fig-align="center" width="100%"}
+
+## {background-color="`r clrs_lt[1]`"}
+
+```{r include=FALSE}
+fred_raw <- read_csv(here::here("R/CPILFESL.csv"))
+```
+
+```{r eval=FALSE, echo=TRUE}
+library(tidyverse)
+
+fred_raw <- read_csv("CPILFESL.csv")
+fred_raw
+```
+
+```{r}
+head(fred_raw)
+```
+
+## {background-color="`r clrs_lt[1]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+
+ggplot(fred_raw, aes(x = DATE, y = CPILFESL)) +
+  geom_line() +
+  labs(x = NULL, y = "CPI")
+```
+
+## Your turn! {background-color="`r clrs[1]`" .center .middle}
+
+# Pre-built API packages {background-color="`r clrs[2]`"}
+
+## Avoid extra work! {background-color="`r clrs_lt[2]`"}
+
+::: {.incremental}
+- Try to avoid downloading raw data files whenever possible!
+- Many data-focused websites provide more direct access to data through an **application programming interface**, or **API**
+- [Big list of public data APIs](https://github.com/public-apis/public-apis)
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/wdi.png){fig-align="center" width="100%"}
+
+::: footer
+[{WDI} R package](https://vincentarelbundock.github.io/WDI/){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = ___,
+            indicator = ___,
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = "MY",
+            indicator = ___,
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = ___,
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("all"),
+            indicator = ___,
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/world-bank-plain.png){fig-align="center" width="100%"}
+
+::: footer
+[World Bank GDP (constant 2015 US$)](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/world-bank-url.png){fig-align="center" width="100%"}
+
+::: footer
+[World Bank GDP (constant 2015 US$)](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD){preview-link="true"}
+:::
+
+::: footer
+[{WDI} R package](https://vincentarelbundock.github.io/WDI/){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = "NY.GDP.MKTP.KD",
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = c("NY.GDP.MKTP.KD",      # GDP, 2015 USD
+                          "NY.GDP.MKTP.KD.ZG"),  # GDP growth, annual %
+            extra = ___,
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = c("NY.GDP.MKTP.KD",      # GDP, 2015 USD
+                          "NY.GDP.MKTP.KD.ZG"),  # GDP growth, annual %
+            extra = TRUE,  # Population, region, and other helpful columns
+            start = ___,
+            end = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = c("NY.GDP.MKTP.KD",      # GDP, 2015 USD
+                          "NY.GDP.MKTP.KD.ZG"),  # GDP growth, annual %
+            extra = TRUE,  # Population, region, and other helpful columns
+            start = 2010,
+            end = 2020)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = c("NY.GDP.MKTP.KD",      # GDP, 2015 USD
+                          "NY.GDP.MKTP.KD.ZG"),  # GDP growth, annual %
+            extra = TRUE,  # Population, region, and other helpful columns
+            start = 2010,
+            end = 2020)
+head(data)
+```
+
+\ 
+
+```{r echo=FALSE}
+data <- readRDS(here::here("R/wdi_data.rds"))
+head(data) %>% select(-status, -lastupdated)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+library(ggplot2)
+
+ggplot(data, aes(x = year, y = NY.GDP.MKTP.KD.ZG, color = country)) +
+  geom_line() +
+  scale_x_continuous(breaks = 2010:2020) +
+  labs(x = NULL, y = "Annual GDP growth (%)", color = NULL)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{.r code-line-numbers="4-5"}
+library(WDI)
+
+data <- WDI(country = c("MY", "ID", "SG"),
+            indicator = c(gdp = "NY.GDP.MKTP.KD",      # GDP, 2015 USD
+                          gdp_growth = "NY.GDP.MKTP.KD.ZG"),  # GDP growth, annual %
+            extra = TRUE,  # Population, region, and other helpful columns
+            start = 2010,
+            end = 2020)
+head(data)
+```
+
+\ 
+
+::: {.fragment .fade-in}
+
+```{r echo=FALSE}
+data <- readRDS(here::here("R/wdi_data1.rds")) %>% 
+  mutate(others = "...")
+head(data) %>% select(iso2c, country, year, gdp, gdp_growth, others)
+```
+
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+library(ggplot2)
+
+ggplot(data, aes(x = year, y = gdp_growth, color = country)) +
+  geom_line() +
+  scale_x_continuous(breaks = 2010:2020) +
+  labs(x = NULL, y = "Annual GDP growth (%)", color = NULL)
+```
+
+## Your turn! {background-color="`r clrs[2]`" .center .middle}
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/fred-plain.png){fig-align="center" width="100%"}
+
+::: footer
+[FRED CPILFESL](https://fred.stlouisfed.org/series/CPILFESL){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/fred-url.png){fig-align="center" width="100%"}
+
+::: footer
+[FRED CPILFESL](https://fred.stlouisfed.org/series/CPILFESL){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+![](images/tidyquant.png){fig-align="center" width="100%"}
+
+::: footer
+[{tidyquant} R package](https://business-science.github.io/tidyquant/){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(tidyquant)
+
+data <- tq_get(x = ___, 
+               get = ___,
+               from = ___,
+               to = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(tidyquant)
+
+data <- tq_get(x = c("CPILFESL",  # CPI
+                     "RSXFSN",  # Advance retail sales
+                     "USREC"),  # US recessions
+               get = ___,
+               from = ___,
+               to = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(tidyquant)
+
+data <- tq_get(x = c("CPILFESL",  # CPI
+                     "RSXFSN",  # Advance retail sales
+                     "USREC"),  # US recessions
+               get = "economic.data",  # Use FRED
+               from = ___,
+               to = ___)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```r
+library(tidyquant)
+
+data <- tq_get(x = c("CPILFESL",  # CPI
+                     "RSXFSN",  # Advance retail sales
+                     "USREC"),  # US recessions
+               get = "economic.data",  # Use FRED
+               from = "2000-01-01",
+               to = "2022-09-01")
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{r include=FALSE}
+data <- readRDS(here::here("R/fred_data.rds"))
+```
+
+```r
+library(tidyquant)
+
+data <- tq_get(x = c("CPILFESL",  # CPI
+                     "RSXFSN",  # Advance retail sales
+                     "USREC"),  # US recessions
+               get = "economic.data",  # Use FRED
+               from = "2000-01-01",
+               to = "2022-09-01")
+head(data)
+```
+
+```{r echo=FALSE}
+head(data)
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{r warning=FALSE, message=FALSE}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+library(tidyverse)
+retail <- data %>% filter(symbol == "RSXFSN")
+
+ggplot(retail, aes(x = date, y = price)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_dollar()) +
+  labs(x = NULL, y = "Retail sales\n(millions of dollars)")
+```
+
+## {background-color="`r clrs_lt[2]`"}
+
+```{r warning=FALSE, message=FALSE}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+recessions_start_end <- data %>% 
+  filter(symbol == "USREC") %>% 
+  mutate(recession_change = price - lag(price)) %>% 
+  filter(recession_change != 0)
+
+recessions <- tibble(start = filter(recessions_start_end, recession_change == 1)$date,
+                     end = filter(recessions_start_end, recession_change == -1)$date)
+
+ggplot(retail, aes(x = date, y = price)) +
+  geom_rect(data = recessions, 
+            aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf),
+            inherit.aes = FALSE, fill = "orange", alpha = 0.5) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_dollar()) +
+  labs(x = NULL, y = "Retail sales\n(millions of dollars)")
+```
+
+## Your turn! {background-color="`r clrs[2]`" .center .middle}
+
+# Accessing APIs yourself {background-color="`r clrs[3]`" .white}
+
+## What if there's an API but<br>no pre-built package? {background-color="`r clrs_lt[3]`"}
+
+::: {.incremental}
+- You can still use the API!
+- You need to write the code to access the API using the [{httr} R package](https://cran.r-project.org/web/packages/httr/vignettes/quickstart.html)
+:::
+
+## Sending data to websites {background-color="`r clrs_lt[3]`"}
+
+. . .
+
+:::: {.columns}
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**GET**
+
+Data sent to server via URLs with parameters
+
+<small>Parameters all visible in the URL</small>
+
+:::
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**POST**
+
+Data sent to server via invisible request
+
+<small>Forms with usernames and passwords</small>
+
+:::
+
+::::
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/url-anatomy@3x.png){fig-align="center" width="100%"}
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/url-anatomy-real@3x.png){fig-align="center" width="100%"}
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/url-anatomy-real@3x.png){fig-align="center" width="100%"}
+
+```{r echo=TRUE}
+library(httr)
+api_url <- modify_url("https://www.econdb.com/",
+                      path = "api/series/URATEMY",
+                      query = list(format = "json"))
+api_url
+```
+
+## Why not just build the URL on your own? {background-color="`r clrs_lt[3]`"}
+
+::: {style="margin-top: 1em;"}
+It's easy enough to just write this:
+
+``` text
+https://www.econdb.com/api/series/URATEMY?format=json
+```
+:::
+
+. . .
+
+::: {style="margin-top: 1em;"}
+Special characters!
+
+```{r echo=TRUE}
+modify_url("https://www.example.com/",
+           path = "blah",
+           query = list(var1 = 142.5, var2 = "Thing & 10%"))
+```
+:::
+
+## Getting data from websites {background-color="`r clrs_lt[3]`"}
+
+. . .
+
+:::: {.columns}
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**Status code**
+
+- 200: OK
+- 400: Bad Request
+- 403: Forbidden
+- 404: Not Found
+
+<small>[Full list](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes)</small>
+:::
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**Headers**
+
+``` text
+Date: Sun, 11 Sep 2022 16:45:20 GMT
+Content-Type: application/json
+Content-Encoding: gzip
+...
+```
+
+<small>[Full list](https://en.wikipedia.org/wiki/List_of_HTTP_header_fields)</small>
+:::
+
+::::
+
+## Content types {background-color="`r clrs_lt[3]`"}
+
+Data can be returned as text, JSON, XML, files, etc.
+
+. . .
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**JSON**
+
+``` json
+{
+    "ticker": "URATEMY",
+    "description": "Malaysia - Unemployment",
+    "geography": "Malaysia",
+    "frequency": "M",
+    "dataset": "BNM_UNEMP",
+    "units": "% of labour force",
+    "additional_metadata": {
+        "2:Indicator": "120:Unemployment ",
+        "GEO:None": "130:None"
+    },
+    "data": {
+        "values": [
+            3.2,
+            3.5,
+            ...
+```
+:::
+
+::: {.column width="50%"}
+**XML**
+
+``` xml
+<wb:countries page="1" pages="1" per_page="50" total="28">
+    <wb:country id="AFG">
+        <wb:iso2Code>AF</wb:iso2Code>
+        <wb:name>Afghanistan</wb:name>
+        <wb:region id="SAS" iso2code="8S">South Asia</wb:region>
+        <wb:adminregion id="SAS" iso2code="8S">South Asia</wb:adminregion>
+        <wb:incomeLevel id="LIC" iso2code="XM">Low income</wb:incomeLevel>
+        <wb:lendingType id="IDX" iso2code="XI">IDA</wb:lendingType>
+        <wb:capitalCity>Kabul</wb:capitalCity>
+        <wb:longitude>69.1761</wb:longitude>
+        <wb:latitude>34.5228</wb:latitude>
+    </wb:country>
+    <wb:country id="BDI">
+        <wb:iso2Code>BI</wb:iso2Code>
+        <wb:name>Burundi</wb:name>
+        ...
+```
+:::
+
+::::
+
+## {background-color="`r clrs_lt[3]`"}
+
+![](images/url-anatomy-real@3x.png){fig-align="center" width="100%"}
+
+```{r include=FALSE}
+r <- readRDS(here::here("R/econdb-json-r.rds"))
+```
+
+``` r
+# Build the URL query
+api_url <- modify_url("https://www.econdb.com/",
+                      path = "api/series/URATEMY",
+                      query = list(format = "json"))
+
+# Submit the query
+r <- GET(api_url)
+r
+```
+
+```{r echo=FALSE}
+r
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+headers(r)
+```
+
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+content(r)
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+content(r, "text")
+```
+
+. . .
+
+\ 
+
+``` json
+{
+    "ticker": "URATEMY",
+    "description": "Malaysia - Unemployment",
+    "geography": "Malaysia",
+    "frequency": "M",
+    "dataset": "BNM_UNEMP",
+    "units": "% of labour force",
+    "additional_metadata": {
+        "2:Indicator": "120:Unemployment ",
+        "GEO:None": "130:None"
+    },
+    "data": {
+        "values": [
+            3.2,
+            3.5,
+            3.5,
+            3.5,
+            3.1,
+            ...
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE, message=FALSE}
+library(jsonlite)
+api_data <- data.frame(fromJSON(content(r, "text"))$data)
+```
+
+```{r echo=FALSE}
+tibble(api_data)
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 2
+#| out-width: 100%
+#| fig-align: center
+library(ggplot2)
+library(lubridate)
+
+api_data_clean <- api_data %>% 
+  mutate(dates = ymd(dates)) %>% 
+  filter(dates > ymd("2010-01-01"))
+
+ggplot(api_data_clean, aes(x = dates, y = values)) +
+  geom_line() +
+  labs(x = NULL, y = "Unemployment rate\nin Malaysia")
+```
+
+## Your turn! {background-color="`r clrs[3]`" .center .middle}
+
+## Every API is different {background-color="`r clrs_lt[3]`"}
+
+::: {.incremental}
+- Each API will accept different arguments, use different URLs, return different variables and formats
+- **Read the documentation!**
+:::
+
+## API authentication {background-color="`r clrs_lt[3]`"}
+
+. . .
+
+Services will often limit your access
+
+. . .
+
+- Rate limiting (*x* API calls/hour)
+- Subscription limiting (must have an account)
+
+## "Logging in" to an API {background-color="`r clrs_lt[3]`"}
+
+. . .
+
+:::: {.columns}
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**API key**
+
+A special parameter that you must include in the query
+:::
+
+::: {.column width="50%" style="margin-top: 1em;"}
+**oAuth authentication**
+
+A special file called a "token" that contains the login information for the service
+
+<small>[How to create an oAuth token with R](https://blog.r-hub.io/2021/01/25/oauth-2.0/)</small>
+:::
+
+::::
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/polygon.png){fig-align="center" width="100%"}
+
+::: footer
+[Polygon.io](https://polygon.io/){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/polygon-api-key.png){fig-align="center" width="100%"}
+
+::: footer
+[Polygon API keys](https://polygon.io/dashboard/api-keys){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[3]`" .center}
+
+![](images/polygon-api-documentation.png){fig-align="center" width="100%"}
+
+::: footer
+[Polygon API documentation](https://polygon.io/docs/stocks/get_v1_open-close__stocksticker___date){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+library(httr)
+polygon_url <- modify_url(
+  "https://api.polygon.io",
+  path = "v2/aggs/ticker/AAPL/range/1/day/2022-08-01/2022-09-09",
+  query = list(apiKey = "SUPER_SECRET_THING")
+)
+```
+
+\ 
+
+```{r include=FALSE}
+r <- readRDS(here::here("R/polygon-json-r.rds"))
+```
+
+``` r
+r <- GET(polygon_url)
+r
+## Response [https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/
+## 2022-08-01/2022-09-09?apiKey=SUPER_SECRET_THING]
+##   Date: 2022-09-11 16:45
+##   Status: 200
+##   Content-Type: application/json
+##   Size: 3.25 kB
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+content(r, "text")
+```
+
+\ 
+
+``` json
+{
+    "ticker": "AAPL",
+    "queryCount": 29,
+    "resultsCount": 29,
+    "adjusted": true,
+    "results": [
+        {
+            "v": 6.7778379e+07,
+            "vw": 162.1045,
+            "o": 161.01,
+            "c": 161.51,
+            "h": 163.59,
+            "l": 160.89,
+            "t": 1659326400000,
+            "n": 594290
+        },
+        {
+            "v": 5.9907025e+07,
+            "vw": 160.6921,
+            "o": 160.1,
+            "c": 160.01,
+            "h": 162.41,
+            "l": 159.63,
+            "t": 1659412800000,
+            "n": 543549
+        },
+        ...
+```
+
+## {background-color="`r clrs_lt[3]`"}
+
+```{r echo=TRUE}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 2.5
+#| out-width: 100%
+#| fig-align: center
+library(ggplot2)
+library(lubridate)
+
+aapl <- data.frame(fromJSON(content(r, "text"))$results) %>% 
+  mutate(ts = as_datetime(t / 1000))
+  
+ggplot(aapl, aes(x = ts, y = c)) +
+  geom_line() +
+  labs(x = NULL, y = "Closing stock price", title = "AAPL stock price", 
+       subtitle = "August 1-September 9, 2022", caption = "Source: Polygon.io")
+```
+
+## Make your own API {background-color="`r clrs_lt[3]`"}
+
+![](images/plumber.png){fig-align="center" width="100%"}
+
+::: footer
+[{plumber} R package](https://www.rplumber.io/){preview-link="true"}
+:::
+
+
+# Scraping websites {background-color="`r clrs[5]`"}
+
+## What if there's no API? :( {background-color="`r clrs_lt[5]`"}
+
+::: {.incremental}
+- Copy and paste
+- Scrape the website<br><small>*(fancy copying and pasting)*</small>
+:::
+
+## {background-color="`r clrs_lt[5]`"}
+
+![](images/rvest.png){fig-align="center" width="100%"}
+
+::: footer
+[{rvest} R package](https://rvest.tidyverse.org/){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[5]`"}
+
+![](images/fed-chairs.png){fig-align="center" width="100%"}
+
+::: footer
+[List of Fed Chairs, Wikipedia](https://web.archive.org/web/20220908211042/https://en.wikipedia.org/wiki/Chair_of_the_Federal_Reserve#List_of_Fed_chairs){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[5]`"}
+
+``` r
+library(rvest)
+
+wiki_url <- "https://en.wikipedia.org/wiki/Chair_of_the_Federal_Reserve"
+
+# Even better to use the Internet Archive since web pages change over time
+wiki_url <- "https://web.archive.org/web/20220908211042/https://en.wikipedia.org/wiki/Chair_of_the_Federal_Reserve"
+
+wiki_raw <- read_html(wiki_url)
+wiki_raw
+```
+
+```{r include=FALSE}
+library(rvest)
+wiki_raw <- read_html(here::here("R/wiki-fed-raw.html"))
+```
+
+```{r echo=FALSE}
+wiki_raw
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+![](images/fed-chairs-table-selected.png){fig-align="center" width="100%"}
+
+::: footer
+[List of Fed Chairs, Wikipedia](https://web.archive.org/web/20220908211042/https://en.wikipedia.org/wiki/Chair_of_the_Federal_Reserve#List_of_Fed_chairs){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[5]`"}
+
+![](images/fed-chairs-xpath.png){fig-align="center" width="100%"}
+
+::: footer
+[List of Fed Chairs, Wikipedia](https://web.archive.org/web/20220908211042/https://en.wikipedia.org/wiki/Chair_of_the_Federal_Reserve#List_of_Fed_chairs){preview-link="true"}
+:::
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r echo=TRUE, collapse=FALSE}
+wiki_raw %>% 
+  html_nodes(xpath = "/html/body/div[3]/div[3]/div[5]/div[1]/table[2]") 
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r echo=TRUE, collapse=FALSE}
+wiki_raw %>% 
+  html_nodes(xpath = "/html/body/div[3]/div[3]/div[5]/div[1]/table[2]") %>% 
+  html_table()
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r echo=TRUE, collapse=FALSE}
+wiki_raw %>% 
+  html_nodes(xpath = "/html/body/div[3]/div[3]/div[5]/div[1]/table[2]") %>% 
+  html_table() %>% 
+  bind_rows()
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r echo=TRUE}
+wiki_clean <- wiki_raw %>% 
+  html_nodes(xpath = "/html/body/div[3]/div[3]/div[5]/div[1]/table[2]") %>% 
+  html_table() %>% 
+  bind_rows() %>% 
+  # Remove first row
+  slice(-1) %>% 
+  # Extract name
+  separate(`Name(birth–death)`, into = c("Name", "birth-death"), sep = "\\(") %>% 
+  mutate(Name = str_remove(Name, "\\[.\\]")) %>% 
+  # Calculate duration in office
+  mutate(tenure_length = as.period(`Tenure length`)) %>% 
+  mutate(seconds = as.numeric(tenure_length)) %>% 
+  mutate(years = seconds / 60 / 60 / 24 / 365.25) %>% 
+  # Put name in order of duration
+  arrange(tenure_length) %>% 
+  mutate(Name = fct_inorder(Name))
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r echo=TRUE, collapse=FALSE}
+wiki_clean %>% 
+  select(Name, `Tenure length`, years)
+```
+
+## {background-color="`r clrs_lt[5]`"}
+
+```{r}
+#| echo: true
+#| fig-width: 6
+#| fig-height: 3
+#| out-width: 100%
+#| fig-align: center
+ggplot(wiki_clean, aes(x = years, y = Name)) +
+  geom_col(fill = "darkgreen") +
+  labs(x = "Years in office", y = NULL)
+```
+
+## More complex scraping {background-color="`r clrs_lt[5]`"}
+
+::: {.incremental}
+- What if there are multiple tables, or entries, or sections, or web pages?
+  - [Star Wars example](https://rvest.tidyverse.org/articles/selectorgadget.html#example){preview-link="true"}
+- Loops!
+  - [Do it politely](https://www.rostrum.blog/2019/03/04/polite-webscrape/){preview-link="true"}
+:::
+
+## Your turn! {background-color="`r clrs[5]`" .white .center .middle}
+
+# Summary {background-color="`r clrs[4]`" .white}
+
+## Real world data is a mess {background-color="`r clrs_lt[4]`"}
+
+::: {.incremental}
+- Every dataset is unique
+- Every API is unique
+- Every website is unique
+:::
+
+## General principles {background-color="`r clrs_lt[4]`"}
+
+::: {.incremental}
+- Try to use APIs to access data directly from data sources
+  - Ideally use a pre-built R package
+  - If not, use {httr}
+  - Consider making an API package ([best practices](https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html))
+- If there's no API, scrape (politely) with {rvest}
+:::

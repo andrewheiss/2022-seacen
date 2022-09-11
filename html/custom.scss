@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Roboto+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/*-- scss:defaults --*/
+
+$font-family-sans-serif: 'Poppins', sans-serif;
+$font-family-monospace: 'Roboto Mono', monospace;
+
+/*-- scss:rules --*/
+
+.slide-deck {
+  border: 3px solid #dee2e6;
+}
+
+.quarto-title h1 {
+  font-weight: 700;
+}
+
+// Footer stuff
+.nav-footer-left {
+  text-align: left;
+}
+
+.nav-footer-right {
+  text-align: right;
+}

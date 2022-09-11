@@ -1,0 +1,40 @@
+project:
+  type: website
+  render:
+    - "*.qmd"
+    - "!README.md"
+    - "!LICENSE.md"
+  resources:
+    - "project.zip"
+
+website:
+  title: "SEACEN 2022 workshop"
+  search: false
+  navbar:
+    background: "#663171"
+    pinned: true
+    right:
+      - href: index.qmd
+        text: Home
+      - href: presentation/index.qmd
+        text: Slides
+      - icon: github
+        href: "https://github.com/andrewheiss/2022-seacen"
+        aria-label: GitHub
+
+  page-footer:
+    left: |
+      Content {{< fa brands creative-commons >}} 2022 by [Andrew Heiss](https://www.andrewheiss.com/)<br>
+      All content licensed under a {{< fa brands creative-commons >}}
+      {{< fa brands creative-commons-by >}} {{< fa brands creative-commons-nc >}}
+      [Creative Commons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/)
+    right: |
+      Made with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)<br>
+      [View the source at {{< fa brands github >}} GitHub](https://github.com/andrewheiss/2022-seacen)
+
+format:
+  html:
+    theme:
+      - pulse
+      - html/custom.scss
+    toc: false
